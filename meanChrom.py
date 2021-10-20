@@ -58,8 +58,9 @@ for i in range(imgTens.shape[0], augImg.shape[0]):
     augImg[i] = torch.from_numpy(currImg)
 
 # CONVERT YOUR IMAGES TO L * a * b * COLOR SPACE
-    # image = cv2.imread('example.jpg')
-    # imageLAB = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
+for i in range(augImg.shape[0]):
+    augImg[i] = torch.from_numpy(cv2.cvtColor(augImg[i].numpy(), cv2.COLOR_BGR2LAB))
+
 
 # BUILD A SIMPLE REGRESSOR
     # Using convolutional layers, that predict the mean chrominance values for the entire input image
