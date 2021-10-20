@@ -1,28 +1,62 @@
 # LOAD THE DATASETS
-import cv2 #OpenCV
+import cv2 
 import os
 import glob
+import torch
+import random
+import numpy
+torch.set_default_tensor_type(torch.FloatTensor)
 
-img_dir = "/face_images"
+#img_dir = "./face_images/*.jpg"
+img_dir = "./face_images/image00000.jpg"
 files = glob.glob(img_dir)
 data = []
 
 for fl in files:
     img = cv2.imread(fl)
-    data.append(img)
+    data.append(img) #img.T
 
-# Should create a tensor of size nImages x Channels x Height x Width
+# Load data into tensor of size nImages x Channels x Height x Width
     # nImages = number of images in the folder
     # Channels = 3 (RBG colors)
     # Height, Width = 128
+imgTens= torch.tensor(data)
 
-# Load your data in a Tensor and randomly shuffle the data using torch.randperm
-    # To reduce memory requirements, set default Torch datatype to 32-bit float with the 
-    # following command at top of your program (before calling loader): torch.setdefaulttensortype('torch.FloatTensor')
-
+# Randomly shuffle the data using torch.randperm
+index = torch.randperm(imgTens.shape[0])
+imgTens = imgTens[index].view(imgTens.size())
 
 # AUGMENT YOUR DATA
 # Augment by a small factor such as 10 to reduce overfitting by using OpenCV to transform your original images
+augImg = torch.cat((imgTens, imgTens, imgTens, imgTens, imgTens, imgTens, imgTens, imgTens, imgTens, imgTens), 0)
+
+#TEST
+currImg = imgTens[0]
+
+#Horizontal Flips
+cv2.imshow('Image', cv2.flip(currImg.numpy(), 1))
+cv2.waitKey(0)
+
+#Random Crops
+newX = numpy.random.randint(0, 64)
+newY = numpy.random.randint(0, 64)
+
+'''
+for i in range(imgTens.shape[0], augImg.shape[0]):
+    currImg = augImg[i]
+
+    # horizontal flips
+    if random.random() < 0.5:
+        currImg = torch.from_numpy(cv2.flip(currImg.numpy(), 0))
+
+    # random crops
+    newX = numpy.random.randint(0, 128)
+    newY = numpy.random.randint(0, 128)
+
+    # scalings of input RBG values by single scaler randomly chosen between [0.6, 1.0]
+
+    augImg[i] = currImg
+'''
 
 # CONVERT YOUR IMAGES TO L * a * b * COLOR SPACE
     # image = cv2.imread('example.jpg')
