@@ -4,7 +4,7 @@ import os
 import glob
 import torch
 import random
-import numpy
+import numpy as np
 torch.set_default_tensor_type(torch.FloatTensor)
 
 img_dir = "./face_images/*.jpg"
@@ -42,10 +42,10 @@ for i in range(imgTens.shape[0], augImg.shape[0]):
         currImg = cv2.flip(currImg, 0)
 
     # random crops - crop size ranges from 64 to 128
-    cropSize = numpy.random.randint(64, 128)
+    cropSize = np.random.randint(64, 128)
 
-    newX = numpy.random.randint(0, cropSize)
-    newY = numpy.random.randint(0, cropSize)
+    newX = np.random.randint(0, cropSize)
+    newY = np.random.randint(0, cropSize)
 
     cropped = currImg[newY: newY + cropSize, newX: newX + cropSize]
     currImg = cv2.resize(cropped, (128, 128))
@@ -61,10 +61,39 @@ for i in range(imgTens.shape[0], augImg.shape[0]):
 for i in range(augImg.shape[0]):
     augImg[i] = torch.from_numpy(cv2.cvtColor(augImg[i].numpy(), cv2.COLOR_BGR2LAB))
 
+# Input: Grey scale image (L channel only)
+normalGreyImg = torch.zeros(7500, 128, 128)
+for i in range(7500):
+    LChan, AChan, BChan = cv2.split(augImg[i].numpy())
+
+    LChan = (LChan - np.min(LChan)) / (np.max(LChan) - np.min(LChan))
+    normalGreyImg[i, :, :] = torch.from_numpy(LChan)
+
+# preprepare mean chrom to test on
+
+import torch.nn as nn
 
 # BUILD A SIMPLE REGRESSOR
     # Using convolutional layers, that predict the mean chrominance values for the entire input image
     # Input: grayscale image (only the L* channel)
     # Output: predicts mean chrominance (take the mean across all pixels to obtain mean a* and mean b*) values across all pixels of the image, ignoring pixel location
+
+class Network(nn.Module):
+    def __init__(self):
+        super(Network, self).__init__()
+        self.conv1 = nn.Conv2d(in_channels=1, out_channels=6, kernel_size=5)
+        self.conv2 = nn.Conv2d(in_channels=6, out_channels=12, kernel_size=5)
+
+        self.fc1 = nn.Linear(in_features=12*4*4, out_features=120) #fully connected layer
+        self.fc2 = nn.Linear(in_features=120, out_features=60)
+        self.out = nn.Linear(in_features=60, out_features=10)
+
+    
+    def forward(self, t):
+        t = self.layer
+        return t
+
+
+
 
 # ONCE YOU HAVE THIS WORKING, MAKE A COPY OF THIS CODE SO THAT YOU CAN SUBMIT IT LATER.
