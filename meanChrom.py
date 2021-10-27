@@ -63,8 +63,12 @@ for i in range(augImg.shape[0]):
 
 # Input: Grey scale image (L channel only)
 normalGreyImg = torch.zeros(7500, 128, 128)
+meanChromTest = torch.zeros(7500, 2)
 for i in range(7500):
     LChan, AChan, BChan = cv2.split(augImg[i].numpy())
+
+    meanChromTest[i, 0] = np.mean(AChan)
+    meanChromTest[i, 1] = np.mean(BChan)
 
     LChan = (LChan - np.min(LChan)) / (np.max(LChan) - np.min(LChan))
     normalGreyImg[i, :, :] = torch.from_numpy(LChan)
