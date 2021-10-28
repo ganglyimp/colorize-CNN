@@ -7,6 +7,8 @@ import random
 import numpy as np
 torch.set_default_tensor_type(torch.FloatTensor)
 
+print("Loading dataset...")
+
 img_dir = "./face_images/*.jpg"
 files = glob.glob(img_dir)
 data = []
@@ -32,6 +34,8 @@ imgTens = imgTens[index].view(imgTens.size())
 # AUGMENT YOUR DATA
 # Augment by a small factor such as 10 to reduce overfitting by using OpenCV to transform your original images
 # there must be a better way of doing this than what I have going on. This is just ugly.
+print("Preprocessing dataset...")
+
 augImg = torch.cat((imgTens, imgTens, imgTens, imgTens, imgTens, imgTens, imgTens, imgTens, imgTens, imgTens), 0)
 
 for i in range(imgTens.shape[0], augImg.shape[0]):
@@ -73,11 +77,6 @@ for i in range(7500):
     LChan = (LChan - np.min(LChan)) / (np.max(LChan) - np.min(LChan))
     normalGreyImg[i, :, :] = torch.from_numpy(LChan)
 
-import torch.nn as nn
-import torch.nn.functional as F
-import torchvision
-import torchvision.transforms as tf
-
 # BUILD A SIMPLE REGRESSOR
     # Using convolutional layers, that predict the mean chrominance values for the entire input image
     # Input: grayscale image (only the L* channel)
@@ -93,74 +92,86 @@ import torchvision.transforms as tf
 #out_channels: sets number of filers. one filter produces one output channel (feature maps)
 #out_features: sets size of output tensor
 
+import torch.nn as nn
+import torch.nn.functional as F
+import torchvision
+import torchvision.transforms as tf
+
 class Network(nn.Module):
     def __init__(self):
         super(Network, self).__init__()
-        self.conv1 = nn.Conv2d(in_channels=1, out_channels=3, kernel_size=65)
-        self.conv2 = nn.Conv2d(in_channels=3, out_channels=3, kernel_size=33)
-        self.conv3 = nn.Conv2d(in_channels=3, out_channels=3, kernel_size=17)
-        self.conv4 = nn.Conv2d(in_channels=3, out_channels=3, kernel_size=9)
-        self.conv5 = nn.Conv2d(in_channels=3, out_channels=3, kernel_size=5)
-        self.conv6 = nn.Conv2d(in_channels=3, out_channels=3, kernel_size=3)
-        self.conv7 = nn.Conv2d(in_channels=3, out_channels=3, kernel_size=1)
+        C = 128 #(out_channels)
+        # stride -> change in image size ("Let there be color": 3.2.1)
+        K = 3
+        self.conv1 = nn.Conv2d(in_channels=1, out_channels=C, kernel_size=K, stride=2, padding=1)
+        self.conv2 = nn.Conv2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1)
+        self.conv3 = nn.Conv2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1)
+        self.conv4 = nn.Conv2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1)
+        self.conv5 = nn.Conv2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1)
+        self.conv6 = nn.Conv2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1)
+        self.conv7 = nn.Conv2d(in_channels=C, out_channels=2, kernel_size=K, stride=2, padding=1)
 
-        self.out = nn.Linear(in_features=2, out_features=2)
+        #self.out = nn.Linear(in_features=2, out_features=2) #check in features
 
     
     def forward(self, t):
-        #hidden conv layer
+        # (1) hidden conv layer
         t = self.conv1(t)
         t = F.relu(t)
-        #t = F.max_pool2d(t, kernel_size=3, stride=1)
 
-        #hidden conv layer
+        # (2) hidden conv layer
         t = self.conv2(t)
         t = F.relu(t)
-        #t = F.max_pool2d(t, kernel_size=3, stride=1)
 
-        #hidden conv layer
+        # (3) hidden conv layer
         t = self.conv3(t)
         t = F.relu(t)
-        #t = F.max_pool2d(t, kernel_size=3, stride=1)
 
-        #hidden conv layer
+        # (4) hidden conv layer
         t = self.conv4(t)
         t = F.relu(t)
-        #t = F.max_pool2d(t, kernel_size=3, stride=1)
 
-        #hidden conv layer
+        # (5) hidden conv layer
         t = self.conv5(t)
         t = F.relu(t)
-        #t = F.max_pool2d(t, kernel_size=3, stride=1)
 
-        #hidden conv layer
+        # (6) hidden conv layer
         t = self.conv6(t)
         t = F.relu(t)
-        #t = F.max_pool2d(t, kernel_size=3, stride=1)
 
-        #hidden conv layer
+        # (7) hidden conv layer
         t = self.conv7(t)
         t = F.relu(t)
-        #t = F.max_pool2d(t, kernel_size=3, stride=1)
 
-        #output 
-        t.reshape(-1,2)
-        print(t.shape)
-        t = self.out(t)
+        ## output 
+        #t.reshape(-1,2)
+        ##t = self.out(t)
 
         return t
 
 network = Network()
 
-for name, param in network.named_parameters():
-    print(name, '\t\t', param.shape)
+#for name, param in network.named_parameters():
+#    print(name, '\t\t', param.shape)
 
 inputMat = normalGreyImg.unsqueeze(1)
-print(inputMat.shape)
-print(inputMat.type())
+trainLoader = torch.utils.data.DataLoader(inputMat, batch_size=100)
+trainBatch = next(iter(trainLoader))
 
-pred = network(inputMat)
-print(pred)
+labelLoader = torch.utils.data.DataLoader(meanChromTest, batch_size=100)
+labelBatch = next(iter(labelLoader))
+
+print("Generating predictions...")
+
+pred = network(trainBatch)
+#loss = F.cross_entropy(pred, labelBatch)
+#print(pred)
+
 print(pred.shape)
+print(pred[0])
+print(labelBatch.shape)
+#Issue: output is a Nx3x2x2 matrix. We want a Nx2 matrix. 
+
+# https://deeplizard.com/learn/video/0VCOG8IeVf8
 
 # ONCE YOU HAVE THIS WORKING, MAKE A COPY OF THIS CODE SO THAT YOU CAN SUBMIT IT LATER.
