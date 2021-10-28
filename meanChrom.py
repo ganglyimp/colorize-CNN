@@ -100,8 +100,7 @@ import torchvision.transforms as tf
 class Network(nn.Module):
     def __init__(self):
         super(Network, self).__init__()
-        C = 128 #(out_channels)
-        # stride -> change in image size ("Let there be color": 3.2.1)
+        C = 128
         K = 3
         self.conv1 = nn.Conv2d(in_channels=1, out_channels=C, kernel_size=K, stride=2, padding=1)
         self.conv2 = nn.Conv2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1)
@@ -110,9 +109,6 @@ class Network(nn.Module):
         self.conv5 = nn.Conv2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1)
         self.conv6 = nn.Conv2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1)
         self.conv7 = nn.Conv2d(in_channels=C, out_channels=2, kernel_size=K, stride=2, padding=1)
-
-        #self.out = nn.Linear(in_features=2, out_features=2) #check in features
-
     
     def forward(self, t):
         # (1) hidden conv layer
@@ -143,10 +139,6 @@ class Network(nn.Module):
         t = self.conv7(t)
         t = F.relu(t)
 
-        ## output 
-        #t.reshape(-1,2)
-        ##t = self.out(t)
-
         return t
 
 network = Network()
@@ -154,23 +146,25 @@ network = Network()
 #for name, param in network.named_parameters():
 #    print(name, '\t\t', param.shape)
 
+batchSize = 100
+
 inputMat = normalGreyImg.unsqueeze(1)
-trainLoader = torch.utils.data.DataLoader(inputMat, batch_size=100)
+trainLoader = torch.utils.data.DataLoader(inputMat, batch_size=batchSize)
 trainBatch = next(iter(trainLoader))
 
-labelLoader = torch.utils.data.DataLoader(meanChromTest, batch_size=100)
+labelLoader = torch.utils.data.DataLoader(meanChromTest, batch_size=batchSize)
 labelBatch = next(iter(labelLoader))
 
 print("Generating predictions...")
 
-pred = network(trainBatch)
-#loss = F.cross_entropy(pred, labelBatch)
-#print(pred)
+pred = network(trainBatch) #outputs a Nx2x1x1 tensor of tensors
+pred = torch.reshape(pred, (batchSize, 2)) #reshape to same shape as labelBatch
 
-print(pred.shape)
-print(pred[0])
-print(labelBatch.shape)
-#Issue: output is a Nx3x2x2 matrix. We want a Nx2 matrix. 
+#Calculating loss
+#Aloss = F.cross_entropy(pred[:, 0], labelBatch[:, 0])
+#Bloss = F.cross_entropy(pred[:, 1], labelBatch[:, 1])
+
+
 
 # https://deeplizard.com/learn/video/0VCOG8IeVf8
 
