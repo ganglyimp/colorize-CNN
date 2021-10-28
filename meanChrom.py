@@ -73,31 +73,94 @@ for i in range(7500):
     LChan = (LChan - np.min(LChan)) / (np.max(LChan) - np.min(LChan))
     normalGreyImg[i, :, :] = torch.from_numpy(LChan)
 
-# preprepare mean chrom to test on
-
 import torch.nn as nn
+import torch.nn.functional as F
+import torchvision
+import torchvision.transforms as tf
 
 # BUILD A SIMPLE REGRESSOR
     # Using convolutional layers, that predict the mean chrominance values for the entire input image
     # Input: grayscale image (only the L* channel)
     # Output: predicts mean chrominance (take the mean across all pixels to obtain mean a* and mean b*) values across all pixels of the image, ignoring pixel location
 
+# Network with 7 Modules, each module consists of a SpatialConvolution layer followed by a ReLU activation function
+# SpatialConvolution layer: set padding & stride so that image after convolution is exactly half the size of the input
+    # Decreasing powers of two: 128, 64, 32, 16
+# Use a small number of feature maps (3) in the hidden layers
+
+#kernel_size: sets filter size
+#in_channels: # of color channels in input image
+#out_channels: sets number of filers. one filter produces one output channel (feature maps)
+#out_features: sets size of output tensor
+
 class Network(nn.Module):
     def __init__(self):
         super(Network, self).__init__()
-        self.conv1 = nn.Conv2d(in_channels=1, out_channels=6, kernel_size=5)
-        self.conv2 = nn.Conv2d(in_channels=6, out_channels=12, kernel_size=5)
+        self.conv1 = nn.Conv2d(in_channels=1, out_channels=3, kernel_size=65)
+        self.conv2 = nn.Conv2d(in_channels=3, out_channels=3, kernel_size=33)
+        self.conv3 = nn.Conv2d(in_channels=3, out_channels=3, kernel_size=17)
+        self.conv4 = nn.Conv2d(in_channels=3, out_channels=3, kernel_size=9)
+        self.conv5 = nn.Conv2d(in_channels=3, out_channels=3, kernel_size=5)
+        self.conv6 = nn.Conv2d(in_channels=3, out_channels=3, kernel_size=3)
+        self.conv7 = nn.Conv2d(in_channels=3, out_channels=3, kernel_size=1)
 
-        self.fc1 = nn.Linear(in_features=12*4*4, out_features=120) #fully connected layer
-        self.fc2 = nn.Linear(in_features=120, out_features=60)
-        self.out = nn.Linear(in_features=60, out_features=10)
+        self.out = nn.Linear(in_features=2, out_features=2)
 
     
     def forward(self, t):
-        t = self.layer
+        #hidden conv layer
+        t = self.conv1(t)
+        t = F.relu(t)
+        #t = F.max_pool2d(t, kernel_size=3, stride=1)
+
+        #hidden conv layer
+        t = self.conv2(t)
+        t = F.relu(t)
+        #t = F.max_pool2d(t, kernel_size=3, stride=1)
+
+        #hidden conv layer
+        t = self.conv3(t)
+        t = F.relu(t)
+        #t = F.max_pool2d(t, kernel_size=3, stride=1)
+
+        #hidden conv layer
+        t = self.conv4(t)
+        t = F.relu(t)
+        #t = F.max_pool2d(t, kernel_size=3, stride=1)
+
+        #hidden conv layer
+        t = self.conv5(t)
+        t = F.relu(t)
+        #t = F.max_pool2d(t, kernel_size=3, stride=1)
+
+        #hidden conv layer
+        t = self.conv6(t)
+        t = F.relu(t)
+        #t = F.max_pool2d(t, kernel_size=3, stride=1)
+
+        #hidden conv layer
+        t = self.conv7(t)
+        t = F.relu(t)
+        #t = F.max_pool2d(t, kernel_size=3, stride=1)
+
+        #output 
+        t.reshape(-1,2)
+        print(t.shape)
+        t = self.out(t)
+
         return t
 
+network = Network()
 
+for name, param in network.named_parameters():
+    print(name, '\t\t', param.shape)
 
+inputMat = normalGreyImg.unsqueeze(1)
+print(inputMat.shape)
+print(inputMat.type())
+
+pred = network(inputMat)
+print(pred)
+print(pred.shape)
 
 # ONCE YOU HAVE THIS WORKING, MAKE A COPY OF THIS CODE SO THAT YOU CAN SUBMIT IT LATER.
