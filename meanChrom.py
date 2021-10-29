@@ -96,6 +96,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
 import torchvision.transforms as tf
+import torch.optim as optim
 
 class Network(nn.Module):
     def __init__(self):
@@ -143,26 +144,42 @@ class Network(nn.Module):
 
 network = Network()
 
-#for name, param in network.named_parameters():
-#    print(name, '\t\t', param.shape)
+#DEBUG FUNCTION. REMOVE BEFORE SUBMISSION
+def correct(preds, labels): 
+    return preds.argmax(dim=1).eq(labels).sum().item()
 
 batchSize = 100
 
 inputMat = normalGreyImg.unsqueeze(1)
 trainLoader = torch.utils.data.DataLoader(inputMat, batch_size=batchSize)
-trainBatch = next(iter(trainLoader))
-
 labelLoader = torch.utils.data.DataLoader(meanChromTest, batch_size=batchSize)
-labelBatch = next(iter(labelLoader))
 
 print("Generating predictions...")
 
-pred = network(trainBatch) #outputs a Nx2x1x1 tensor of tensors
-pred = torch.reshape(pred, (batchSize, 2)) #reshape to same shape as labelBatch
+optimizer = optim.SGD(network.parameters(), lr= .1, momentum = .9)
+lossFunc = nn.MSELoss()
 
-#Calculating loss
-#Aloss = F.cross_entropy(pred[:, 0], labelBatch[:, 0])
-#Bloss = F.cross_entropy(pred[:, 1], labelBatch[:, 1])
+totCorr = 0
+for i in range(1, 7):
+    optimizer.zero_grad()
+    trainBatch = next(iter(trainLoader))
+    labelBatch = next(iter(labelLoader))
+
+    pred = network(trainBatch) #outputs a Nx2x1x1 tensor of tensors
+    corr = correct(pred, labelBatch)
+    totCorr += corr
+
+    #Finding loss & calculating gradients
+    pred = torch.reshape(pred, (batchSize, 2)) #reshape to same shape at labelBatch
+    loss = lossFunc(pred, labelBatch)
+
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
+
+    print(i, " Loss: ", loss.item())
+
+print("Correct: ", totCorr)
 
 
 
