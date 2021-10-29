@@ -110,7 +110,15 @@ class Network(nn.Module):
         self.conv5 = nn.Conv2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1)
         self.conv6 = nn.Conv2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1)
         self.conv7 = nn.Conv2d(in_channels=C, out_channels=2, kernel_size=K, stride=2, padding=1)
-    
+        nn.init.xavier_uniform_(self.conv1.weight)
+        nn.init.xavier_uniform_(self.conv2.weight)
+        nn.init.xavier_uniform_(self.conv3.weight)
+        nn.init.xavier_uniform_(self.conv4.weight)
+        nn.init.xavier_uniform_(self.conv5.weight)
+        nn.init.xavier_uniform_(self.conv6.weight)
+        nn.init.xavier_uniform_(self.conv7.weight)
+
+
     def forward(self, t):
         # (1) hidden conv layer
         t = self.conv1(t)
@@ -144,10 +152,6 @@ class Network(nn.Module):
 
 network = Network()
 
-#DEBUG FUNCTION. REMOVE BEFORE SUBMISSION
-def correct(preds, labels): 
-    return preds.argmax(dim=1).eq(labels).sum().item()
-
 batchSize = 100
 
 inputMat = normalGreyImg.unsqueeze(1)
@@ -156,13 +160,13 @@ labelLoader = torch.utils.data.DataLoader(meanChromTest, batch_size=batchSize)
 
 print("Generating predictions...")
 
-optimizer = optim.SGD(network.parameters(), lr= .1, momentum = .9)
+optimizer = optim.Adam(network.parameters(), lr= .01)
 lossFunc = nn.MSELoss()
 
 totCorr = 0
-for i in range(1, 7):
+i = 0
+for trainBatch in trainLoader:
     optimizer.zero_grad()
-    trainBatch = next(iter(trainLoader))
     labelBatch = next(iter(labelLoader))
 
     pred = network(trainBatch) #outputs a Nx2x1x1 tensor of tensors
@@ -176,12 +180,7 @@ for i in range(1, 7):
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
-
-    print(i, " Loss: ", loss.item())
-
-print("Correct: ", totCorr)
-
-
+    i+=1
 
 # https://deeplizard.com/learn/video/0VCOG8IeVf8
 
