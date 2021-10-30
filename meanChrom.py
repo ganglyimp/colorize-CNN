@@ -15,16 +15,12 @@ data = []
 
 for fl in files:
     img = cv2.imread(fl)
-    data.append(img) #img.T to get in project spec format
+    data.append(img)
 
 # Load data into tensor of size nImages x Channels x Height x Width
     # nImages = number of images in the folder
     # Channels = 3 (RBG colors)
     # Height, Width = 128
-
-# Here's an issue. OpenCV expects images to be in format nImages x Height x Width x Channels
-    # Does it affect anything having the dimensions being out of order? 
-    # We at least need to use the OpenCV ordering for preprocessing.
 imgTens= torch.tensor(data)
 
 # Randomly shuffle the data using torch.randperm
@@ -33,7 +29,6 @@ imgTens = imgTens[index].view(imgTens.size())
 
 # AUGMENT YOUR DATA
 # Augment by a small factor such as 10 to reduce overfitting by using OpenCV to transform your original images
-# there must be a better way of doing this than what I have going on. This is just ugly.
 print("Preprocessing dataset...")
 
 augImg = torch.cat((imgTens, imgTens, imgTens, imgTens, imgTens, imgTens, imgTens, imgTens, imgTens, imgTens), 0)
@@ -82,16 +77,6 @@ for i in range(7500):
     # Input: grayscale image (only the L* channel)
     # Output: predicts mean chrominance (take the mean across all pixels to obtain mean a* and mean b*) values across all pixels of the image, ignoring pixel location
 
-# Network with 7 Modules, each module consists of a SpatialConvolution layer followed by a ReLU activation function
-# SpatialConvolution layer: set padding & stride so that image after convolution is exactly half the size of the input
-    # Decreasing powers of two: 128, 64, 32, 16
-# Use a small number of feature maps (3) in the hidden layers
-
-#kernel_size: sets filter size
-#in_channels: # of color channels in input image
-#out_channels: sets number of filers. one filter produces one output channel (feature maps)
-#out_features: sets size of output tensor
-
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
@@ -110,6 +95,7 @@ class Network(nn.Module):
         self.conv5 = nn.Conv2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1)
         self.conv6 = nn.Conv2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1)
         self.conv7 = nn.Conv2d(in_channels=C, out_channels=2, kernel_size=K, stride=2, padding=1)
+
         nn.init.xavier_uniform_(self.conv1.weight)
         nn.init.xavier_uniform_(self.conv2.weight)
         nn.init.xavier_uniform_(self.conv3.weight)
@@ -163,15 +149,12 @@ print("Generating predictions...")
 optimizer = optim.Adam(network.parameters(), lr= .01)
 lossFunc = nn.MSELoss()
 
-totCorr = 0
 i = 0
 for trainBatch in trainLoader:
     optimizer.zero_grad()
     labelBatch = next(iter(labelLoader))
 
     pred = network(trainBatch) #outputs a Nx2x1x1 tensor of tensors
-    corr = correct(pred, labelBatch)
-    totCorr += corr
 
     #Finding loss & calculating gradients
     pred = torch.reshape(pred, (batchSize, 2)) #reshape to same shape at labelBatch
@@ -181,7 +164,3 @@ for trainBatch in trainLoader:
     loss.backward()
     optimizer.step()
     i+=1
-
-# https://deeplizard.com/learn/video/0VCOG8IeVf8
-
-# ONCE YOU HAVE THIS WORKING, MAKE A COPY OF THIS CODE SO THAT YOU CAN SUBMIT IT LATER.
