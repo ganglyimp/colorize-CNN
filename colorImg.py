@@ -66,8 +66,8 @@ chromValues = torch.zeros(7500, 2, 128, 128)
 for i in range(7500):
     LChan, AChan, BChan = cv2.split(augImg[i].numpy())
 
-    chromValues[i, 0] = AChan
-    chromValues[i, 1] = BChan
+    chromValues[i, 0] = torch.from_numpy(AChan)
+    chromValues[i, 1] = torch.from_numpy(BChan)
 
     LChan = (LChan - np.min(LChan)) / (np.max(LChan) - np.min(LChan))
     normalGreyImg[i, :, :] = torch.from_numpy(LChan)
@@ -147,8 +147,6 @@ class Network(nn.Module):
 
 network = Network()
 
-batchSize = 100
-
 # Divide dataset into two parts: 90% training, 10% testing
 inputMat = normalGreyImg.unsqueeze(1)
 tenPercent = int(inputMat.size(dim=0) * 0.1)
@@ -159,6 +157,8 @@ trainInput = inputMat[tenPercent:, :, :, :]
 testLabels = chromValues[0:tenPercent, :, :, :]
 trainLabels = chromValues[tenPercent:, :, :, :]
 
+# Creating mini-batches
+batchSize = 100
 trainLoader = torch.utils.data.DataLoader(trainInput, batch_size=batchSize)
 labelLoader = torch.utils.data.DataLoader(trainLabels, batch_size=batchSize)
 
