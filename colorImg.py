@@ -113,14 +113,14 @@ class Network(nn.Module):
         self.deconv2 = nn.ConvTranspose2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1)
         self.deconv3 = nn.ConvTranspose2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1)
         self.deconv4 = nn.ConvTranspose2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1)
-        self.deconv5 = nn.ConvTranspose2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1)
+        self.deconv5 = nn.ConvTranspose2d(in_channels=C, out_channels=2, kernel_size=K, stride=2, padding=1)
         #self.deconv6 = nn.ConvTranspose2d(in_channels=C, out_channels=2, kernel_size=K, stride=2, padding=1)
         #self.deconv7 = nn.ConvTranspose2d(in_channels=C, out_channels=2, kernel_size=K, stride=2, padding=1)
 
         #after each Conv2d layer, insert SpatialBatchNormalization layer
         #requires 4D tensor inputs, so have to divide training dataset into mini-batches of say 10 images each
         #input: (NBatchx1xHEIGHTxWIDTH), output: (NBatchx2xHEIGHTxWIDTH)
-        '''
+        
         self.norm1 = nn.BatchNorm2d(C)
         self.norm2 = nn.BatchNorm2d(C)
         self.norm3 = nn.BatchNorm2d(C)
@@ -128,41 +128,44 @@ class Network(nn.Module):
         self.norm5 = nn.BatchNorm2d(C)
         self.norm6 = nn.BatchNorm2d(C)
         self.norm7 = nn.BatchNorm2d(C)
-        '''
+        
 
 
     def forward(self, t):
         # (1) hidden conv layer
         t = self.conv1(t)
-        #t = self.norm1(t)
+        t = self.norm1(t)
         t = F.relu(t)
 
         # (2) hidden conv layer
         t = self.conv2(t)
-        #t = self.norm2(t)
+        t = self.norm2(t)
         t = F.relu(t)
 
         # (3) hidden conv layer
         t = self.conv3(t)
-        #t = self.norm3(t)
+        t = self.norm3(t)
         t = F.relu(t)
 
         # (4) hidden conv layer
         t = self.conv4(t)
-        #t = self.norm4(t)
+        t = self.norm4(t)
         t = F.relu(t)
 
         # (5) hidden conv layer
         t = self.conv5(t)
-        #t = self.norm5(t)
+        t = self.norm5(t)
         t = F.relu(t)
 
-        t = self.deconv1(t)
-        t = self.deconv2(t)
-        t = self.deconv3(t)
-        t = self.deconv4(t)
-        t = self.deconv5(t)
-
+        t = self.deconv1(t, output_size = [10,128,8,8])
+        #print(t.shape)
+        t = self.deconv2(t, output_size = [10,128,16,16])
+        #print(t.shape)
+        t = self.deconv3(t, output_size = [10,128,32,32])
+        #print(t.shape)
+        t = self.deconv4(t, output_size = [10,128,64,64])
+        #print(t.shape)
+        t = self.deconv5(t, output_size = [10,2,128,128])
         return t
 
 network = Network()
@@ -182,16 +185,17 @@ batchSize = 10
 trainLoader = torch.utils.data.DataLoader(trainInput, batch_size=batchSize)
 labelLoader = torch.utils.data.DataLoader(trainLabels, batch_size=batchSize)
 
+testLoader = torch.utils.data.DataLoader(testInput, batch_size=batchSize)
+testLabelLoader = torch.utils.data.DataLoader(testLabels, batch_size=batchSize)
+
 print("Generating predictions...")
 
 optimizer = optim.Adam(network.parameters(), lr= .01)
 lossFunc = nn.MSELoss()
 
 #TEMP DEBUG LINE
-pred = network(next(iter(trainLoader)))
-print(pred.shape)
+picture = torch.zeros(128,128,3)
 
-'''
 i = 0
 for trainBatch in trainLoader:
     optimizer.zero_grad()
@@ -201,13 +205,33 @@ for trainBatch in trainLoader:
 
     #Finding loss & calculating gradients
     loss = lossFunc(pred, labelBatch)
-
+    print(loss.item())
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
     i+=1
-'''
 
+i = 0
+for testBatch in testLoader:
+    optimizer.zero_grad()
+    labelBatch = next(iter(testLabelLoader))
+
+    pred = network(testBatch)
+
+    #Finding loss & calculating gradients
+    loss = lossFunc(pred, labelBatch)
+    print(i, " ", loss.item())
+    #optimizer.zero_grad()
+    # loss.backward()
+    # optimizer.step()
+    i+=1
+    if i==74:
+        picture[:,:,0] = testBatch[0,0,:,:]
+        picture[:,:,1:2] = torch.reshape(pred[0,:,:,:],(128,128,2))
+
+pictureRGB = cv2.cvtColor(picture.numpy(), cv2.COLOR_LAB2RGB)
+cv2.imshow('pictureRGB', pictureRGB)
+cv2.waitKey(0)
 # To evaluate test images, print numerical mean square error value
 # Also, run input luminance of image through network, 
 # then merge a* and b* values predicted by regressor with input luminance, 
