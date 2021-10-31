@@ -89,59 +89,79 @@ class Network(nn.Module):
         C = 128
         K = 3
 
-        #after each Conv2d layer, insert SpatialBatchNormalization layer
-        #requires 4D tensor inputs, so have to divide training dataset into mini-batches of say 10 images each
-        #input: (NBatchx1xHEIGHTxWIDTH), output: (NBatchx2xHEIGHTxWIDTH)
         self.conv1 = nn.Conv2d(in_channels=1, out_channels=C, kernel_size=K, stride=2, padding=1)
         self.conv2 = nn.Conv2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1)
         self.conv3 = nn.Conv2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1)
         self.conv4 = nn.Conv2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1)
         self.conv5 = nn.Conv2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1)
-        self.conv6 = nn.Conv2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1)
-        self.conv7 = nn.Conv2d(in_channels=C, out_channels=2, kernel_size=K, stride=2, padding=1)
+        #self.conv6 = nn.Conv2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1)
+        #self.conv7 = nn.Conv2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1)
 
         nn.init.xavier_uniform_(self.conv1.weight)
         nn.init.xavier_uniform_(self.conv2.weight)
         nn.init.xavier_uniform_(self.conv3.weight)
         nn.init.xavier_uniform_(self.conv4.weight)
         nn.init.xavier_uniform_(self.conv5.weight)
-        nn.init.xavier_uniform_(self.conv6.weight)
-        nn.init.xavier_uniform_(self.conv7.weight)
+        #nn.init.xavier_uniform_(self.conv6.weight)
+        #nn.init.xavier_uniform_(self.conv7.weight)
 
         #image size output = image size input, 2 color channels (2x128x128)
         #reduce downsampling layers to N, then also use N upsampling layers
         #start with N = 5 and experiment from there
         #initial spatial resolutions: 128, 64, 32, 16, 8, 4, 8, 16, 32, 64, 128
+        self.deconv1 = nn.ConvTranspose2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1)
+        self.deconv2 = nn.ConvTranspose2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1)
+        self.deconv3 = nn.ConvTranspose2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1)
+        self.deconv4 = nn.ConvTranspose2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1)
+        self.deconv5 = nn.ConvTranspose2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1)
+        #self.deconv6 = nn.ConvTranspose2d(in_channels=C, out_channels=2, kernel_size=K, stride=2, padding=1)
+        #self.deconv7 = nn.ConvTranspose2d(in_channels=C, out_channels=2, kernel_size=K, stride=2, padding=1)
+
+        #after each Conv2d layer, insert SpatialBatchNormalization layer
+        #requires 4D tensor inputs, so have to divide training dataset into mini-batches of say 10 images each
+        #input: (NBatchx1xHEIGHTxWIDTH), output: (NBatchx2xHEIGHTxWIDTH)
+        '''
+        self.norm1 = nn.BatchNorm2d(C)
+        self.norm2 = nn.BatchNorm2d(C)
+        self.norm3 = nn.BatchNorm2d(C)
+        self.norm4 = nn.BatchNorm2d(C)
+        self.norm5 = nn.BatchNorm2d(C)
+        self.norm6 = nn.BatchNorm2d(C)
+        self.norm7 = nn.BatchNorm2d(C)
+        '''
 
 
     def forward(self, t):
         # (1) hidden conv layer
         t = self.conv1(t)
+        #t = self.norm1(t)
         t = F.relu(t)
 
         # (2) hidden conv layer
         t = self.conv2(t)
+        #t = self.norm2(t)
         t = F.relu(t)
 
         # (3) hidden conv layer
         t = self.conv3(t)
+        #t = self.norm3(t)
         t = F.relu(t)
 
         # (4) hidden conv layer
         t = self.conv4(t)
+        #t = self.norm4(t)
         t = F.relu(t)
 
         # (5) hidden conv layer
         t = self.conv5(t)
+        #t = self.norm5(t)
         t = F.relu(t)
 
-        # (6) hidden conv layer
-        t = self.conv6(t)
-        t = F.relu(t)
-
-        # (7) hidden conv layer
-        t = self.conv7(t)
-        t = F.relu(t)
+        t = self.deconv1(t)
+        t = self.deconv2(t)
+        t = self.deconv3(t)
+        t = self.deconv4(t)
+        t = self.deconv5(t)
 
         return t
 
@@ -158,7 +178,7 @@ testLabels = chromValues[0:tenPercent, :, :, :]
 trainLabels = chromValues[tenPercent:, :, :, :]
 
 # Creating mini-batches
-batchSize = 100
+batchSize = 10
 trainLoader = torch.utils.data.DataLoader(trainInput, batch_size=batchSize)
 labelLoader = torch.utils.data.DataLoader(trainLabels, batch_size=batchSize)
 
@@ -166,6 +186,10 @@ print("Generating predictions...")
 
 optimizer = optim.Adam(network.parameters(), lr= .01)
 lossFunc = nn.MSELoss()
+
+#TEMP DEBUG LINE
+pred = network(next(iter(trainLoader)))
+print(pred.shape)
 
 '''
 i = 0
