@@ -215,7 +215,7 @@ for testBatch in testLoader:
 
     #Merging predicted A*B* channels for colorized image output (last batch only)
     if i == 74:
-        lastBatch = labelBatch.numpy()
+        lastBatch = testBatch.numpy()
         lastPreds = pred.detach().numpy()
     
     i += 1
@@ -225,19 +225,20 @@ meanLoss = meanLoss / i
 print("Mean loss: ", meanLoss)
 
 # Combining input L* channel and predicted A* B* channels to produce colorized image
-coloredImg = np.zeros((128, 128, 3))
+coloredImg = np.zeros((10, 128, 128, 3))
 
 lastBatch = np.interp(lastBatch, (lastBatch.min(), lastBatch.max()), (0, 100))
+lastPreds = np.interp(lastPreds, (lastPreds.min(), lastPreds.max()), (-128, 128))
 
-coloredImg[:, :, 0] = lastBatch[0, 0, :, :]
-coloredImg[:, :, 1] = lastPreds[0, 0, :, :]
-coloredImg[:, :, 2] = lastPreds[0, 1, :, :]
+for i in range(10):
+    coloredImg[i, :, :, 0] = lastBatch[i, 0, :, :]
+    coloredImg[i, :, :, 1] = lastPreds[i, 0, :, :]
+    coloredImg[i, :, :, 2] = lastPreds[i, 1, :, :]
 
-coloredImg = np.around(coloredImg)
+for i in range(10):
+    pictureBGR = cv2.cvtColor(coloredImg[i].astype(np.float32), cv2.COLOR_LAB2BGR)
+    imgName = "Colored Image " + str(i)
+    cv2.imshow(imgName, pictureBGR) 
 
-pictureRGB = cv2.cvtColor(coloredImg.astype(np.float32), cv2.COLOR_LAB2RGB)
-
-print(pictureRGB)
-
-cv2.imshow('Colored Image', pictureRGB)
 cv2.waitKey(0)
+cv2.destroyAllWindows()
