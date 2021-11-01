@@ -86,50 +86,40 @@ import torch.optim as optim
 class Network(nn.Module):
     def __init__(self):
         super(Network, self).__init__()
-        C = 128
-        K = 3
+        C = 128 #in/out channels
+        K = 3 #kernel size
 
+        # Convolutional Layers
         self.conv1 = nn.Conv2d(in_channels=1, out_channels=C, kernel_size=K, stride=2, padding=1)
         self.conv2 = nn.Conv2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1)
         self.conv3 = nn.Conv2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1)
         self.conv4 = nn.Conv2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1)
         self.conv5 = nn.Conv2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1)
-        #self.conv6 = nn.Conv2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1)
-        #self.conv7 = nn.Conv2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1)
+        self.conv6 = nn.Conv2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1)
 
+        # Scales weights by gain parameter
         nn.init.xavier_uniform_(self.conv1.weight)
         nn.init.xavier_uniform_(self.conv2.weight)
         nn.init.xavier_uniform_(self.conv3.weight)
         nn.init.xavier_uniform_(self.conv4.weight)
         nn.init.xavier_uniform_(self.conv5.weight)
-        #nn.init.xavier_uniform_(self.conv6.weight)
-        #nn.init.xavier_uniform_(self.conv7.weight)
+        nn.init.xavier_uniform_(self.conv6.weight)
 
-        #image size output = image size input, 2 color channels (2x128x128)
-        #reduce downsampling layers to N, then also use N upsampling layers
-        #start with N = 5 and experiment from there
-        #initial spatial resolutions: 128, 64, 32, 16, 8, 4, 8, 16, 32, 64, 128
-        self.deconv1 = nn.ConvTranspose2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1)
-        self.deconv2 = nn.ConvTranspose2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1)
-        self.deconv3 = nn.ConvTranspose2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1)
-        self.deconv4 = nn.ConvTranspose2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1)
-        self.deconv5 = nn.ConvTranspose2d(in_channels=C, out_channels=2, kernel_size=K, stride=2, padding=1)
-        #self.deconv6 = nn.ConvTranspose2d(in_channels=C, out_channels=2, kernel_size=K, stride=2, padding=1)
-        #self.deconv7 = nn.ConvTranspose2d(in_channels=C, out_channels=2, kernel_size=K, stride=2, padding=1)
-
-        #after each Conv2d layer, insert SpatialBatchNormalization layer
-        #requires 4D tensor inputs, so have to divide training dataset into mini-batches of say 10 images each
-        #input: (NBatchx1xHEIGHTxWIDTH), output: (NBatchx2xHEIGHTxWIDTH)
-        
+        # Batch Normalization 
         self.norm1 = nn.BatchNorm2d(C)
         self.norm2 = nn.BatchNorm2d(C)
         self.norm3 = nn.BatchNorm2d(C)
         self.norm4 = nn.BatchNorm2d(C)
         self.norm5 = nn.BatchNorm2d(C)
         self.norm6 = nn.BatchNorm2d(C)
-        self.norm7 = nn.BatchNorm2d(C)
-        
 
+        # Deconvolutional Layers
+        self.deconv1 = nn.ConvTranspose2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1)
+        self.deconv2 = nn.ConvTranspose2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1)
+        self.deconv3 = nn.ConvTranspose2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1)
+        self.deconv4 = nn.ConvTranspose2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1)
+        self.deconv5 = nn.ConvTranspose2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1)
+        self.deconv6 = nn.ConvTranspose2d(in_channels=C, out_channels=2, kernel_size=K, stride=2, padding=1)
 
     def forward(self, t):
         # (1) hidden conv layer
@@ -157,15 +147,19 @@ class Network(nn.Module):
         t = self.norm5(t)
         t = F.relu(t)
 
-        t = self.deconv1(t, output_size = [10,128,8,8])
-        #print(t.shape)
-        t = self.deconv2(t, output_size = [10,128,16,16])
-        #print(t.shape)
-        t = self.deconv3(t, output_size = [10,128,32,32])
-        #print(t.shape)
-        t = self.deconv4(t, output_size = [10,128,64,64])
-        #print(t.shape)
-        t = self.deconv5(t, output_size = [10,2,128,128])
+        # (6) hidden conv layer
+        t = self.conv6(t)
+        t = self.norm6(t)
+        t = F.relu(t)
+
+        # Deconv Layers
+        t = self.deconv1(t, output_size=(10,128,4,4))
+        t = self.deconv2(t, output_size=(10,128,8,8))
+        t = self.deconv3(t, output_size=(10,128,16,16))
+        t = self.deconv4(t, output_size=(10,128,32,32))
+        t = self.deconv5(t, output_size=(10,128,64,64))
+        t = self.deconv6(t, output_size=(10,2,128,128))
+
         return t
 
 network = Network()
@@ -188,30 +182,27 @@ labelLoader = torch.utils.data.DataLoader(trainLabels, batch_size=batchSize)
 testLoader = torch.utils.data.DataLoader(testInput, batch_size=batchSize)
 testLabelLoader = torch.utils.data.DataLoader(testLabels, batch_size=batchSize)
 
-print("Generating predictions...")
-
 optimizer = optim.Adam(network.parameters(), lr= .01)
 lossFunc = nn.MSELoss()
 
-#TEMP DEBUG LINE
-picture = torch.zeros(128,128,3)
-
-i = 0
+print("Training the network...")
 for trainBatch in trainLoader:
-    optimizer.zero_grad()
     labelBatch = next(iter(labelLoader))
 
     pred = network(trainBatch)
 
     #Finding loss & calculating gradients
     loss = lossFunc(pred, labelBatch)
-    print(loss.item())
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
-    i+=1
+
+print("Testing the network...")
+lastBatch = []
+lastPreds = []
 
 i = 0
+meanLoss = 0
 for testBatch in testLoader:
     optimizer.zero_grad()
     labelBatch = next(iter(testLabelLoader))
@@ -220,19 +211,33 @@ for testBatch in testLoader:
 
     #Finding loss & calculating gradients
     loss = lossFunc(pred, labelBatch)
-    print(i, " ", loss.item())
-    #optimizer.zero_grad()
-    # loss.backward()
-    # optimizer.step()
-    i+=1
-    if i==74:
-        picture[:,:,0] = testBatch[0,0,:,:]
-        picture[:,:,1:2] = torch.reshape(pred[0,:,:,:],(128,128,2))
+    meanLoss += loss.item()
 
-pictureRGB = cv2.cvtColor(picture.numpy(), cv2.COLOR_LAB2RGB)
-cv2.imshow('pictureRGB', pictureRGB)
+    #Merging predicted A*B* channels for colorized image output (last batch only)
+    if i == 74:
+        lastBatch = labelBatch.numpy()
+        lastPreds = pred.detach().numpy()
+    
+    i += 1
+
+# Average MSE
+meanLoss = meanLoss / i
+print("Mean loss: ", meanLoss)
+
+# Combining input L* channel and predicted A* B* channels to produce colorized image
+coloredImg = np.zeros((128, 128, 3))
+
+lastBatch = np.interp(lastBatch, (lastBatch.min(), lastBatch.max()), (0, 100))
+
+coloredImg[:, :, 0] = lastBatch[0, 0, :, :]
+coloredImg[:, :, 1] = lastPreds[0, 0, :, :]
+coloredImg[:, :, 2] = lastPreds[0, 1, :, :]
+
+coloredImg = np.around(coloredImg)
+
+pictureRGB = cv2.cvtColor(coloredImg.astype(np.float32), cv2.COLOR_LAB2RGB)
+
+print(pictureRGB)
+
+cv2.imshow('Colored Image', pictureRGB)
 cv2.waitKey(0)
-# To evaluate test images, print numerical mean square error value
-# Also, run input luminance of image through network, 
-# then merge a* and b* values predicted by regressor with input luminance, 
-# and convert back to RGB color space (will let you view colorized images)
