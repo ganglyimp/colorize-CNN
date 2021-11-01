@@ -203,6 +203,7 @@ lastPreds = []
 
 i = 0
 meanLoss = 0
+network.eval()
 for testBatch in testLoader:
     optimizer.zero_grad()
     labelBatch = next(iter(testLabelLoader))
