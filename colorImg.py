@@ -95,7 +95,6 @@ class Network(nn.Module):
         self.conv3 = nn.Conv2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1)
         self.conv4 = nn.Conv2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1)
         self.conv5 = nn.Conv2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1)
-        self.conv6 = nn.Conv2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1)
 
         # Scales weights by gain parameter
         nn.init.xavier_uniform_(self.conv1.weight)
@@ -103,7 +102,6 @@ class Network(nn.Module):
         nn.init.xavier_uniform_(self.conv3.weight)
         nn.init.xavier_uniform_(self.conv4.weight)
         nn.init.xavier_uniform_(self.conv5.weight)
-        nn.init.xavier_uniform_(self.conv6.weight)
 
         # Batch Normalization 
         self.norm1 = nn.BatchNorm2d(C)
@@ -111,15 +109,13 @@ class Network(nn.Module):
         self.norm3 = nn.BatchNorm2d(C)
         self.norm4 = nn.BatchNorm2d(C)
         self.norm5 = nn.BatchNorm2d(C)
-        self.norm6 = nn.BatchNorm2d(C)
 
         # Deconvolutional Layers
         self.deconv1 = nn.ConvTranspose2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1)
         self.deconv2 = nn.ConvTranspose2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1)
         self.deconv3 = nn.ConvTranspose2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1)
         self.deconv4 = nn.ConvTranspose2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1)
-        self.deconv5 = nn.ConvTranspose2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1)
-        self.deconv6 = nn.ConvTranspose2d(in_channels=C, out_channels=2, kernel_size=K, stride=2, padding=1)
+        self.deconv5 = nn.ConvTranspose2d(in_channels=C, out_channels=2, kernel_size=K, stride=2, padding=1)
 
     def forward(self, t):
         # (1) hidden conv layer
@@ -147,18 +143,12 @@ class Network(nn.Module):
         t = self.norm5(t)
         t = F.relu(t)
 
-        # (6) hidden conv layer
-        t = self.conv6(t)
-        t = self.norm6(t)
-        t = F.relu(t)
-
         # Deconv Layers
-        t = self.deconv1(t, output_size=(10,128,4,4))
-        t = self.deconv2(t, output_size=(10,128,8,8))
-        t = self.deconv3(t, output_size=(10,128,16,16))
-        t = self.deconv4(t, output_size=(10,128,32,32))
-        t = self.deconv5(t, output_size=(10,128,64,64))
-        t = self.deconv6(t, output_size=(10,2,128,128))
+        t = self.deconv1(t, output_size=(10,128,8,8))
+        t = self.deconv2(t, output_size=(10,128,16,16))
+        t = self.deconv3(t, output_size=(10,128,32,32))
+        t = self.deconv4(t, output_size=(10,128,64,64))
+        t = self.deconv5(t, output_size=(10,2,128,128))
 
         return t
 
