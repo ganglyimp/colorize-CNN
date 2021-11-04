@@ -22,7 +22,7 @@ for fl in files:
     # nImages = number of images in the folder
     # Channels = 3 (RBG colors)
     # Height, Width = 128
-imgTens = torch.CudaTensor(data)
+imgTens = torch.cuda(data)
 
 # Randomly shuffle the data using torch.randperm
 index = torch.randperm(imgTens.shape[0])
@@ -62,8 +62,8 @@ for i in range(augImg.shape[0]):
     augImg[i] = torch.from_numpy(cv2.cvtColor(augImg[i].numpy(), cv2.COLOR_BGR2LAB))
 
 # Input: Grey scale image (L channel only)
-normalGreyImg = torch.CudaTensor(7500, 128, 128):zero()
-chromValues = torch.CudaTensor(7500, 2, 128, 128):zero()
+normalGreyImg = torch.cuda.zeros(7500, 128, 128)
+chromValues = torch.cuda.zeros(7500, 2, 128, 128)
 for i in range(7500):
     LChan, AChan, BChan = cv2.split(augImg[i].numpy())
 
@@ -91,36 +91,36 @@ class Network(nn.Module):
         K = 3 #kernel size
 
         # Convolutional Layers
-        self.conv1 = nn.Conv2d(in_channels=1, out_channels=C, kernel_size=K, stride=2, padding=1):cuda()
-        self.conv2 = nn.Conv2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1):cuda()
-        self.conv3 = nn.Conv2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1):cuda()
-        self.conv4 = nn.Conv2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1):cuda()
-        self.conv5 = nn.Conv2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1):cuda()
-        self.conv6 = nn.Conv2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1):cuda()
+        self.conv1 = nn.Conv2d(in_channels=1, out_channels=C, kernel_size=K, stride=2, padding=1).cuda()
+        self.conv2 = nn.Conv2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1).cuda()
+        self.conv3 = nn.Conv2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1).cuda()
+        self.conv4 = nn.Conv2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1).cuda()
+        self.conv5 = nn.Conv2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1).cuda()
+        self.conv6 = nn.Conv2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1).cuda()
 
         # Scales weights by gain parameter
-        nn.init.xavier_uniform_(self.conv1.weight):cuda()
-        nn.init.xavier_uniform_(self.conv2.weight):cuda()
-        nn.init.xavier_uniform_(self.conv3.weight):cuda()
-        nn.init.xavier_uniform_(self.conv4.weight):cuda()
-        nn.init.xavier_uniform_(self.conv5.weight):cuda()
-        nn.init.xavier_uniform_(self.conv6.weight):cuda()
+        nn.init.xavier_uniform_(self.conv1.weight).cuda()
+        nn.init.xavier_uniform_(self.conv2.weight).cuda()
+        nn.init.xavier_uniform_(self.conv3.weight).cuda()
+        nn.init.xavier_uniform_(self.conv4.weight).cuda()
+        nn.init.xavier_uniform_(self.conv5.weight).cuda()
+        nn.init.xavier_uniform_(self.conv6.weight).cuda()
 
         # Batch Normalization 
-        self.norm1 = nn.BatchNorm2d(C):cuda()
-        self.norm2 = nn.BatchNorm2d(C):cuda()
-        self.norm3 = nn.BatchNorm2d(C):cuda()
-        self.norm4 = nn.BatchNorm2d(C):cuda()
-        self.norm5 = nn.BatchNorm2d(C):cuda()
-        self.norm6 = nn.BatchNorm2d(C):cuda()
+        self.norm1 = nn.BatchNorm2d(C).cuda()
+        self.norm2 = nn.BatchNorm2d(C).cuda()
+        self.norm3 = nn.BatchNorm2d(C).cuda()
+        self.norm4 = nn.BatchNorm2d(C).cuda()
+        self.norm5 = nn.BatchNorm2d(C).cuda()
+        self.norm6 = nn.BatchNorm2d(C).cuda()
 
         # Deconvolutional Layers
-        self.deconv1 = nn.ConvTranspose2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1):cuda()
-        self.deconv2 = nn.ConvTranspose2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1):cuda()
-        self.deconv3 = nn.ConvTranspose2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1):cuda()
-        self.deconv4 = nn.ConvTranspose2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1):cuda()
-        self.deconv5 = nn.ConvTranspose2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1):cuda()
-        self.deconv6 = nn.ConvTranspose2d(in_channels=C, out_channels=2, kernel_size=K, stride=2, padding=1):cuda()
+        self.deconv1 = nn.ConvTranspose2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1).cuda()
+        self.deconv2 = nn.ConvTranspose2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1).cuda()
+        self.deconv3 = nn.ConvTranspose2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1).cuda()
+        self.deconv4 = nn.ConvTranspose2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1).cuda()
+        self.deconv5 = nn.ConvTranspose2d(in_channels=C, out_channels=C, kernel_size=K, stride=2, padding=1).cuda()
+        self.deconv6 = nn.ConvTranspose2d(in_channels=C, out_channels=2, kernel_size=K, stride=2, padding=1).cuda()
 
     def forward(self, t):
         # (1) hidden conv layer
